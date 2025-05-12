@@ -1,15 +1,8 @@
 "use client";
-import { Account } from "@/services/Account/Account.model";
-import {
-  Transaction,
-  TransactionData,
-  TransactionInput,
-} from "@/services/Transaction/Transaction.model";
-import {
-  formatCurrency,
-  formatDate,
-  getFormattedDateNow,
-} from "@/utils/formatters";
+import { AccountProps } from "@/domain/entities/Account";
+import { TransactionProps } from "@/domain/entities/Transaction";
+import { formatCurrency, getFormattedDateNow } from "@/presentation/formatters";
+import { TransactionViewModelMapper } from "@/presentation/view-models/TransactionViewModel";
 import { Container, Grid2 } from "@mui/material";
 import {
   FAccountSummaryCard,
@@ -23,7 +16,6 @@ import {
   FTransactionFormItem,
   FTransactionFormItemInput,
   FTransactionListCard,
-  TransactionItem,
 } from "components";
 import Image from "next/image";
 import Link from "next/link";
@@ -32,11 +24,11 @@ import { useEffect, useState } from "react";
 
 interface AccountDashboardProps {
   menuItems: FMenuListItem[];
-  account: Account;
-  transactionList: Transaction[];
+  account: AccountProps;
+  transactionList: TransactionProps[];
   getInitialData: () => void;
-  submitAddTransaction?: (transaction: TransactionInput) => void;
-  submitEditTransaction?: (transaction: TransactionData) => void;
+  submitAddTransaction?: (transaction: Omit<TransactionProps, "id">) => void;
+  submitEditTransaction?: (transaction: TransactionProps) => void;
   submitDeleteTransaction?: (transactionId: string) => void;
 }
 
@@ -49,18 +41,9 @@ export default function AccountDashboard({
   submitEditTransaction,
   submitDeleteTransaction,
 }: AccountDashboardProps) {
-  const loadData = async () => {
-    getInitialData();
-  };
-
   useEffect(() => {
-    loadData();
-  }, []);
-
-  // const accountUpdatedEvent = new CustomEvent("dashboardApp: accountUpdated", {
-  //   detail: account.fullName,
-  // });
-  // document.dispatchEvent(accountUpdatedEvent);
+    getInitialData();
+  }, [getInitialData]);
 
   const formattedBalance = formatCurrency(account.balance, account.currency);
   const formattedDate = getFormattedDateNow();
@@ -71,34 +54,33 @@ export default function AccountDashboard({
     current: item.path === pathname,
   }));
 
-  const formattedTransactions: TransactionItem[] = transactionList.map(
-    (transaction) => ({
-      id: transaction.id,
-      type: transaction.type,
-      formattedDate: formatDate(transaction.date),
-      formattedValue: formatCurrency(transaction.value, transaction.currency),
-    })
-  );
+  const formattedTransactions =
+    TransactionViewModelMapper.toViewModelList(transactionList);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [currentTransaction, setCurrentTransaction] = useState<Transaction>();
+  const [currentTransaction, setCurrentTransaction] =
+    useState<FTransactionFormItem>();
 
   const openEditModal = (transactionId: string) => {
-    setCurrentTransaction(
-      transactionList.find(({ id }) => id === transactionId)
-    );
-
+    const transaction = transactionList.find(({ id }) => id === transactionId);
+    if (transaction) {
+      setCurrentTransaction({
+        id: transaction.id!,
+        type: transaction.type,
+        value: transaction.value,
+      });
+    }
     setIsModalOpen(true);
   };
 
   const handleEditTransaction = (transaction: FTransactionFormItem) => {
-    if (!submitEditTransaction) {
+    if (!submitEditTransaction || !currentTransaction?.id) {
       return;
     }
 
-    const editedTransaction: TransactionData = {
+    const editedTransaction: TransactionProps = {
       ...transaction,
+      id: currentTransaction.id,
       currency: "R$",
       date: new Date().toISOString(),
     };
@@ -111,10 +93,9 @@ export default function AccountDashboard({
       return;
     }
 
-    const newTransaction: TransactionInput = {
+    const newTransaction: Omit<TransactionProps, "id"> = {
       ...transaction,
       currency: "R$",
-
       date: new Date().toISOString(),
     };
 

@@ -1,69 +1,79 @@
-import AccountDashboard from "@/components/pages/AccountDashboard/AccountDashboard";
-import { MENU_ITEMS } from "@/constants/menuItems";
-import { getAccountInfo } from "@/services/Account/Account.controller";
-import { Account } from "@/services/Account/Account.model";
-import {
-  addTransaction,
-  deleteTransaction,
-  editTransaction,
-  getTransactions,
-} from "@/services/Transaction/Transaction.controller";
-import {
-  Transaction,
-  TransactionData,
-  TransactionInput,
-} from "@/services/Transaction/Transaction.model";
+import { TransactionProps } from "@/domain/entities/Transaction";
+import { ServiceProvider } from "@/infrastructure/ServiceProvider";
+import AccountDashboard from "@/presentation/components/AccountDashboard";
+import { MENU_ITEMS } from "@/presentation/constants/menuItems";
 import Head from "next/head";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 export default function DashboardView() {
-  const account: Account = {
+  const services = ServiceProvider.getInstance();
+  const accountService = services.getAccountService();
+  const transactionService = services.getTransactionService();
+
+  const [localAccount, setLocalAccount] = useState({
     fullName: "",
     firstName: "",
     balance: 0,
     currency: "",
-  };
+  });
+  const [localTransactions, setLocalTransactions] = useState<
+    TransactionProps[]
+  >([]);
 
-  const transactions: Transaction[] = [];
+  const fetchAccount = useCallback(async () => {
+    const account = await accountService.getAccountInfo();
+    setLocalAccount({
+      fullName: account.fullName,
+      firstName: account.firstName,
+      balance: account.balance,
+      currency: account.currency,
+    });
+  }, [accountService]);
 
-  const [localAccount, setLocalAccount] = useState(account);
-  const [localTransactions, setLocalTransactions] = useState(transactions);
+  const fetchTransactions = useCallback(async () => {
+    const transactions = await transactionService.getTransactions();
+    setLocalTransactions(
+      transactions.map((t) => ({
+        id: t.id,
+        type: t.type,
+        date: t.date,
+        value: t.value,
+        currency: t.currency,
+        fileBase64: t.fileBase64,
+        fileName: t.fileName,
+      }))
+    );
+  }, [transactionService]);
 
-  async function getInitialData() {
+  const getInitialData = useCallback(async () => {
     await fetchAccount();
     await fetchTransactions();
-  }
+  }, [fetchAccount, fetchTransactions]);
 
-  async function fetchAccount() {
-    const updatedTransactions = await getAccountInfo();
-    setLocalAccount(updatedTransactions);
-  }
+  const submitAddTransaction = useCallback(
+    async (transaction: TransactionProps) => {
+      await transactionService.addTransaction(transaction);
+      await fetchTransactions();
+    },
+    [transactionService, fetchTransactions]
+  );
 
-  async function fetchTransactions() {
-    const updatedTransactions = await getTransactions();
-    setLocalTransactions(updatedTransactions);
-  }
+  const submitEditTransaction = useCallback(
+    async (transaction: TransactionProps) => {
+      if (!transaction.id) return;
+      await transactionService.editTransaction(transaction);
+      await fetchTransactions();
+    },
+    [transactionService, fetchTransactions]
+  );
 
-  async function submitAddTransaction(transaction: TransactionInput) {
-    await addTransaction(transaction);
-
-    const updatedTransactions = await getTransactions();
-    setLocalTransactions(updatedTransactions);
-  }
-
-  async function submitEditTransaction(transaction: TransactionData) {
-    await editTransaction(transaction);
-    setLocalTransactions(
-      localTransactions.map((t) => (t.id === transaction.id ? transaction : t))
-    );
-  }
-
-  async function submitDeleteTransaction(transactionId: string) {
-    await deleteTransaction(transactionId);
-    setLocalTransactions(
-      localTransactions.filter((t) => t.id !== transactionId)
-    );
-  }
+  const submitDeleteTransaction = useCallback(
+    async (transactionId: string) => {
+      await transactionService.deleteTransaction(transactionId);
+      await fetchTransactions();
+    },
+    [transactionService, fetchTransactions]
+  );
 
   return (
     <>
@@ -74,8 +84,8 @@ export default function DashboardView() {
       <AccountDashboard
         menuItems={MENU_ITEMS}
         account={localAccount}
-        getInitialData={getInitialData}
         transactionList={localTransactions}
+        getInitialData={getInitialData}
         submitAddTransaction={submitAddTransaction}
         submitEditTransaction={submitEditTransaction}
         submitDeleteTransaction={submitDeleteTransaction}
