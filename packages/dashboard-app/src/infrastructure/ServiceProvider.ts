@@ -7,13 +7,18 @@ export class ServiceProvider {
   private static instance: ServiceProvider;
   private accountService: AccountService;
   private transactionService: TransactionService;
+  private accountRepository: HttpAccountRepository;
+  private transactionRepository: HttpTransactionRepository;
 
   private constructor() {
-    const accountRepository = new HttpAccountRepository();
-    const transactionRepository = new HttpTransactionRepository();
+    this.accountRepository = new HttpAccountRepository();
+    this.transactionRepository = new HttpTransactionRepository();
 
-    this.accountService = new AccountService(accountRepository);
-    this.transactionService = new TransactionService(transactionRepository);
+    this.accountService = new AccountService(this.accountRepository);
+    this.transactionService = new TransactionService(
+      this.transactionRepository,
+      this.accountRepository
+    );
   }
 
   public static getInstance(): ServiceProvider {

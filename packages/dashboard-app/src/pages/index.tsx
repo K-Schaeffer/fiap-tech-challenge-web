@@ -60,8 +60,17 @@ export default function DashboardView() {
 
   const submitEditTransaction = useCallback(
     async (transaction: TransactionAttributes) => {
-      if (!transaction.id) return;
-      await transactionService.editTransaction(transaction);
+      if (!transaction.id) {
+        return;
+      }
+
+      await transactionService.editTransaction({
+        id: transaction.id,
+        type: transaction.type,
+        value: transaction.value,
+        fileBase64: transaction.fileBase64,
+        fileName: transaction.fileName,
+      });
       await fetchTransactions();
     },
     [transactionService, fetchTransactions]
