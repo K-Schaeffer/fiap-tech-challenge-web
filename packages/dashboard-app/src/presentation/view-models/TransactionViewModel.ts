@@ -1,4 +1,4 @@
-import { TransactionProps } from "@/domain/entities/Transaction";
+import { TransactionAttributes } from "@/domain/entities/Transaction";
 import { formatCurrency, formatDate } from "../formatters";
 
 export interface TransactionViewModel {
@@ -9,7 +9,7 @@ export interface TransactionViewModel {
 }
 
 export class TransactionViewModelMapper {
-  static toViewModel(transaction: TransactionProps): TransactionViewModel {
+  static toViewModel(transaction: TransactionAttributes): TransactionViewModel {
     return {
       id: transaction.id!,
       formattedDate: formatDate(transaction.date),
@@ -19,11 +19,11 @@ export class TransactionViewModelMapper {
   }
 
   static toViewModelList(
-    transactions: TransactionProps[]
+    transactions: TransactionAttributes[]
   ): TransactionViewModel[] {
     return transactions
       .filter(
-        (transaction): transaction is Required<TransactionProps> =>
+        (transaction): transaction is Required<TransactionAttributes> =>
           transaction.id !== undefined
       )
       .map((transaction) => this.toViewModel(transaction));

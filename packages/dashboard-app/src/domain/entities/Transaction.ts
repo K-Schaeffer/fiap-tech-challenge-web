@@ -1,4 +1,4 @@
-export interface TransactionProps {
+export interface TransactionAttributes {
   id?: string;
   type: string;
   date: string;
@@ -9,37 +9,37 @@ export interface TransactionProps {
 }
 
 export class Transaction {
-  private readonly props: TransactionProps;
+  private readonly attributes: TransactionAttributes;
 
-  constructor(props: TransactionProps) {
-    this.props = props;
+  constructor(attributes: TransactionAttributes) {
+    this.attributes = attributes;
   }
 
   get id(): string | undefined {
-    return this.props.id;
+    return this.attributes.id;
   }
 
   get type(): string {
-    return this.props.type;
+    return this.attributes.type;
   }
 
   get date(): string {
-    return this.props.date;
+    return this.attributes.date;
   }
 
   get value(): number {
-    return this.props.value;
+    return this.attributes.value;
   }
 
   get currency(): string {
-    return this.props.currency;
+    return this.attributes.currency;
   }
 
   get fileBase64(): string | undefined {
-    return this.props.fileBase64;
+    return this.attributes.fileBase64;
   }
 
   get fileName(): string | undefined {
-    return this.props.fileName;
+    return this.attributes.fileName;
   }
 }

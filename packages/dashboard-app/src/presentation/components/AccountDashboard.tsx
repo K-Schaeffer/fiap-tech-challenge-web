@@ -1,6 +1,6 @@
 "use client";
-import { AccountProps } from "@/domain/entities/Account";
-import { TransactionProps } from "@/domain/entities/Transaction";
+import { AccountAttributes } from "@/domain/entities/Account";
+import { TransactionAttributes } from "@/domain/entities/Transaction";
 import { formatCurrency, getFormattedDateNow } from "@/presentation/formatters";
 import { TransactionViewModelMapper } from "@/presentation/view-models/TransactionViewModel";
 import { Container, Grid2 } from "@mui/material";
@@ -24,11 +24,13 @@ import { useEffect, useState } from "react";
 
 interface AccountDashboardProps {
   menuItems: FMenuListItem[];
-  account: AccountProps;
-  transactionList: TransactionProps[];
+  account: AccountAttributes;
+  transactionList: TransactionAttributes[];
   getInitialData: () => void;
-  submitAddTransaction?: (transaction: Omit<TransactionProps, "id">) => void;
-  submitEditTransaction?: (transaction: TransactionProps) => void;
+  submitAddTransaction?: (
+    transaction: Omit<TransactionAttributes, "id">
+  ) => void;
+  submitEditTransaction?: (transaction: TransactionAttributes) => void;
   submitDeleteTransaction?: (transactionId: string) => void;
 }
 
@@ -78,7 +80,7 @@ export default function AccountDashboard({
       return;
     }
 
-    const editedTransaction: TransactionProps = {
+    const editedTransaction: TransactionAttributes = {
       ...transaction,
       id: currentTransaction.id,
       currency: "R$",
@@ -93,7 +95,7 @@ export default function AccountDashboard({
       return;
     }
 
-    const newTransaction: Omit<TransactionProps, "id"> = {
+    const newTransaction: Omit<TransactionAttributes, "id"> = {
       ...transaction,
       currency: "R$",
       date: new Date().toISOString(),

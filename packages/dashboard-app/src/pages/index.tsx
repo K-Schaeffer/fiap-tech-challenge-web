@@ -1,4 +1,4 @@
-import { TransactionProps } from "@/domain/entities/Transaction";
+import { TransactionAttributes } from "@/domain/entities/Transaction";
 import { ServiceProvider } from "@/infrastructure/ServiceProvider";
 import AccountDashboard from "@/presentation/components/AccountDashboard";
 import { MENU_ITEMS } from "@/presentation/constants/menuItems";
@@ -17,7 +17,7 @@ export default function DashboardView() {
     currency: "",
   });
   const [localTransactions, setLocalTransactions] = useState<
-    TransactionProps[]
+    TransactionAttributes[]
   >([]);
 
   const fetchAccount = useCallback(async () => {
@@ -51,7 +51,7 @@ export default function DashboardView() {
   }, [fetchAccount, fetchTransactions]);
 
   const submitAddTransaction = useCallback(
-    async (transaction: TransactionProps) => {
+    async (transaction: TransactionAttributes) => {
       await transactionService.addTransaction(transaction);
       await fetchTransactions();
     },
@@ -59,7 +59,7 @@ export default function DashboardView() {
   );
 
   const submitEditTransaction = useCallback(
-    async (transaction: TransactionProps) => {
+    async (transaction: TransactionAttributes) => {
       if (!transaction.id) return;
       await transactionService.editTransaction(transaction);
       await fetchTransactions();

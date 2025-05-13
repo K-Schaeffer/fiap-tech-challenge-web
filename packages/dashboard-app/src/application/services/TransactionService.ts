@@ -1,4 +1,7 @@
-import { Transaction, TransactionProps } from "@/domain/entities/Transaction";
+import {
+  Transaction,
+  TransactionAttributes,
+} from "@/domain/entities/Transaction";
 import { TransactionRepository } from "@/domain/repositories/TransactionRepository";
 
 export class TransactionService {
@@ -8,11 +11,15 @@ export class TransactionService {
     return this.transactionRepository.getTransactions();
   }
 
-  async addTransaction(transaction: TransactionProps): Promise<Transaction> {
+  async addTransaction(
+    transaction: TransactionAttributes
+  ): Promise<Transaction> {
     return this.transactionRepository.addTransaction(transaction);
   }
 
-  async editTransaction(transaction: TransactionProps): Promise<Transaction> {
+  async editTransaction(
+    transaction: TransactionAttributes
+  ): Promise<Transaction> {
     return this.transactionRepository.editTransaction(transaction);
   }
 

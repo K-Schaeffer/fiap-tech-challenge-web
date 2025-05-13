@@ -1,4 +1,4 @@
-import { Account, AccountProps } from "@/domain/entities/Account";
+import { Account, AccountAttributes } from "@/domain/entities/Account";
 import { AccountRepository } from "@/domain/repositories/AccountRepository";
 
 export class HttpAccountRepository implements AccountRepository {
@@ -12,7 +12,7 @@ export class HttpAccountRepository implements AccountRepository {
       },
     });
 
-    const data: AccountProps = await res.json();
+    const data: AccountAttributes = await res.json();
     return new Account(data);
   }
 }

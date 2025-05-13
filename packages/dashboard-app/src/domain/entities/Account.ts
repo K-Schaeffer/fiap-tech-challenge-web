@@ -1,4 +1,4 @@
-export interface AccountProps {
+export interface AccountAttributes {
   fullName: string;
   firstName: string;
   balance: number;
@@ -6,25 +6,25 @@ export interface AccountProps {
 }
 
 export class Account {
-  private readonly props: AccountProps;
+  private readonly attributes: AccountAttributes;
 
-  constructor(props: AccountProps) {
-    this.props = props;
+  constructor(attributes: AccountAttributes) {
+    this.attributes = attributes;
   }
 
   get fullName(): string {
-    return this.props.fullName;
+    return this.attributes.fullName;
   }
 
   get firstName(): string {
-    return this.props.firstName;
+    return this.attributes.firstName;
   }
 
   get balance(): number {
-    return this.props.balance;
+    return this.attributes.balance;
   }
 
   get currency(): string {
-    return this.props.currency;
+    return this.attributes.currency;
   }
 }
