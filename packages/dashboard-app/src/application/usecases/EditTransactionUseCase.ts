@@ -34,7 +34,6 @@ export class EditTransactionUseCase {
       account.validateBalance(dto.value);
     }
 
-    // Create transaction through the domain entity
     const transaction = Transaction.create({
       id: dto.id,
       type: dto.type,

@@ -16,7 +16,6 @@ export class CreateTransactionUseCase {
   ) {}
 
   async execute(dto: CreateTransactionDTO): Promise<Transaction> {
-    // Check balance if it's not a credit transaction
     if (!Object.values(TransactionType).includes(dto.type as TransactionType)) {
       throw new Error("Invalid transaction type");
     }
@@ -30,7 +29,6 @@ export class CreateTransactionUseCase {
       account.validateBalance(dto.value);
     }
 
-    // Create transaction through the domain entity
     const transaction = Transaction.create({
       type: dto.type,
       rawValue: dto.value,
