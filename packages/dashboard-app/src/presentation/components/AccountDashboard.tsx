@@ -1,7 +1,8 @@
 "use client";
-import { AccountAttributes } from "@/domain/entities/Account";
+import { Account, AccountAttributes } from "@/domain/entities/Account";
 import { TransactionAttributes } from "@/domain/entities/Transaction";
-import { formatCurrency, getFormattedDateNow } from "@/presentation/formatters";
+import { getFormattedDateNow } from "@/presentation/formatters";
+import { AccountViewModelMapper } from "@/presentation/view-models/AccountViewModel";
 import { TransactionViewModelMapper } from "@/presentation/view-models/TransactionViewModel";
 import { Container, Grid2 } from "@mui/material";
 import {
@@ -47,7 +48,10 @@ export default function AccountDashboard({
     getInitialData();
   }, [getInitialData]);
 
-  const formattedBalance = formatCurrency(account.balance, account.currency);
+  const accountViewModel = AccountViewModelMapper.toViewModel(
+    new Account(account)
+  );
+
   const formattedDate = getFormattedDateNow();
   const pathname = usePathname();
 
@@ -83,7 +87,7 @@ export default function AccountDashboard({
     const editedTransaction: TransactionAttributes = {
       ...transaction,
       id: currentTransaction.id,
-      currency: "R$",
+      currency: accountViewModel.currency,
       date: new Date().toISOString(),
     };
 
@@ -97,7 +101,7 @@ export default function AccountDashboard({
 
     const newTransaction: Omit<TransactionAttributes, "id"> = {
       ...transaction,
-      currency: "R$",
+      currency: accountViewModel.currency,
       date: new Date().toISOString(),
     };
 
@@ -135,9 +139,9 @@ export default function AccountDashboard({
             gap={3}
           >
             <FAccountSummaryCard
-              firstName={account.firstName}
-              currency={account.currency}
-              balance={formattedBalance}
+              firstName={accountViewModel.firstName}
+              currency={accountViewModel.currency}
+              balance={accountViewModel.formattedBalance}
               date={formattedDate}
             >
               <Image src="/assets/card-pixels-2.svg" alt="" fill />
@@ -146,7 +150,7 @@ export default function AccountDashboard({
             </FAccountSummaryCard>
             <FTransactionFormCard
               addTransaction={handleAddTransaction}
-              accountBalance={account.balance}
+              accountBalance={accountViewModel.balance}
             >
               <Image src="/assets/card-pixels-3.svg" alt="" layout="fill" />
               <Image src="/assets/card-pixels-4.svg" alt="" layout="fill" />
@@ -176,7 +180,7 @@ export default function AccountDashboard({
           handleClose={() => setIsModalOpen(false)}
         >
           <FTransactionForm
-            accountBalance={account.balance}
+            accountBalance={accountViewModel.balance}
             currentTransaction={currentTransaction}
             editTransaction={handleEditTransaction}
             closeEditModal={() => setIsModalOpen(false)}
