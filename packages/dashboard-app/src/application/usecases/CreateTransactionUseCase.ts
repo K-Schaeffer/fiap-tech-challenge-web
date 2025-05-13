@@ -1,7 +1,4 @@
-import {
-  Transaction,
-  TransactionAttributes,
-} from "@/domain/entities/Transaction";
+import { Transaction, TransactionType } from "@/domain/entities/Transaction";
 import { AccountRepository } from "@/domain/repositories/AccountRepository";
 import { TransactionRepository } from "@/domain/repositories/TransactionRepository";
 
@@ -19,47 +16,37 @@ export class CreateTransactionUseCase {
   ) {}
 
   async execute(dto: CreateTransactionDTO): Promise<Transaction> {
-    if (dto.fileBase64 && dto.fileName) {
-      this.validateFile(dto.fileBase64, dto.fileName);
+    // Check balance if it's not a credit transaction
+    if (!Object.values(TransactionType).includes(dto.type as TransactionType)) {
+      throw new Error("Invalid transaction type");
     }
 
-    const isCredit = ["Depósito", "Empréstimo"].includes(dto.type);
-    if (!isCredit) {
-      await this.validateBalance(dto.value);
+    if (
+      ![TransactionType.DEPOSIT, TransactionType.LOAN].includes(
+        dto.type as TransactionType
+      )
+    ) {
+      const account = await this.accountRepository.getAccountInfo();
+      account.validateBalance(dto.value);
     }
 
-    const transaction: TransactionAttributes = {
-      ...dto,
+    // Create transaction through the domain entity
+    const transaction = Transaction.create({
+      type: dto.type,
+      rawValue: dto.value,
       currency: "R$",
       date: new Date().toISOString(),
-      value: this.calculateTransactionValue(dto.type, dto.value),
-    };
+      fileBase64: dto.fileBase64,
+      fileName: dto.fileName,
+    });
 
-    return this.transactionRepository.addTransaction(transaction);
-  }
-
-  private async validateBalance(value: number): Promise<void> {
-    const account = await this.accountRepository.getAccountInfo();
-    if (value > account.balance) {
-      throw new Error("Insufficient funds");
-    }
-  }
-
-  private validateFile(fileBase64: string, fileName: string): void {
-    const fileSizeInBytes = Math.ceil((fileBase64.length * 3) / 4);
-    if (fileSizeInBytes > 1048576) {
-      throw new Error("File size must be less than 1MB");
-    }
-
-    const fileExtension = fileName.split(".").pop()?.toLowerCase();
-    if (!["jpg", "jpeg", "png"].includes(fileExtension || "")) {
-      throw new Error("Only jpg, jpeg and png files are allowed");
-    }
-  }
-
-  private calculateTransactionValue(type: string, value: number): number {
-    return ["Depósito", "Empréstimo"].includes(type)
-      ? Math.abs(value)
-      : -Math.abs(value);
+    return this.transactionRepository.addTransaction({
+      type: transaction.type,
+      value: transaction.value,
+      currency: transaction.currency,
+      date: transaction.date,
+      fileBase64: transaction.fileBase64,
+      fileName: transaction.fileName,
+    });
   }
 }

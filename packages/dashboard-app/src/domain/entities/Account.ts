@@ -5,11 +5,24 @@ export interface AccountAttributes {
   currency: string;
 }
 
+export class InsufficientFundsError extends Error {
+  constructor(available: number, requested: number) {
+    super(`Insufficient funds: available ${available}, requested ${requested}`);
+    this.name = "InsufficientFundsError";
+  }
+}
+
 export class Account {
   private readonly attributes: AccountAttributes;
 
   constructor(attributes: AccountAttributes) {
     this.attributes = attributes;
+  }
+
+  validateBalance(value: number): void {
+    if (value > this.balance) {
+      throw new InsufficientFundsError(this.balance, value);
+    }
   }
 
   get fullName(): string {
