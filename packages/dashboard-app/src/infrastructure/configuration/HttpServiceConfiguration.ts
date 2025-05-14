@@ -3,7 +3,7 @@ import { TransactionService } from "@/application/services/TransactionService";
 import { HttpAccountRepository } from "../repositories/HttpAccountRepository";
 import { HttpTransactionRepository } from "../repositories/HttpTransactionRepository";
 
-export interface HttpServices {
+interface HttpServices {
   accountService: AccountService;
   transactionService: TransactionService;
 }
@@ -25,6 +25,5 @@ export function initializeHttpServices(): HttpServices {
       ),
     };
   }
-
   return httpServices;
 }
