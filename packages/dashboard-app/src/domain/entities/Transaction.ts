@@ -11,11 +11,6 @@ export enum TransactionType {
   PIX = "PIX",
 }
 
-export interface TransactionFile {
-  base64: string;
-  name: string;
-}
-
 export interface TransactionAttributes {
   id?: string;
   type: string;
@@ -67,13 +62,11 @@ export class Transaction {
   }
 
   private static validateFile(fileBase64: string, fileName: string): void {
-    // File size validation
     const fileSizeInBytes = Math.ceil((fileBase64.length * 3) / 4);
     if (fileSizeInBytes > this.MAX_FILE_SIZE) {
       throw new Error("File size must be less than 1MB");
     }
 
-    // File type validation
     const fileExtension = fileName.split(".").pop()?.toLowerCase();
     if (!this.ALLOWED_FILE_EXTENSIONS.includes(fileExtension || "")) {
       throw new Error("Only jpg, jpeg and png files are allowed");

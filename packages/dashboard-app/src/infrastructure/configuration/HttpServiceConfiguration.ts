@@ -25,5 +25,6 @@ export function initializeHttpServices(): HttpServices {
       ),
     };
   }
+
   return httpServices;
 }

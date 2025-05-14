@@ -1,7 +1,7 @@
 "use client";
-import { Account, AccountAttributes } from "@/domain/entities/Account";
-import { TransactionAttributes } from "@/domain/entities/Transaction";
 import { getFormattedDateNow } from "@/presentation/formatters";
+import { AccountDTO } from "@/presentation/types/AccountDTO";
+import { TransactionDTO } from "@/presentation/types/TransactionDTO";
 import { AccountViewModelMapper } from "@/presentation/view-models/AccountViewModel";
 import { TransactionViewModelMapper } from "@/presentation/view-models/TransactionViewModel";
 import { Container, Grid2 } from "@mui/material";
@@ -15,7 +15,6 @@ import {
   FTransactionForm,
   FTransactionFormCard,
   FTransactionFormItem,
-  FTransactionFormItemInput,
   FTransactionListCard,
 } from "components";
 import Image from "next/image";
@@ -25,13 +24,11 @@ import { useEffect, useState } from "react";
 
 interface AccountDashboardProps {
   menuItems: FMenuListItem[];
-  account: AccountAttributes;
-  transactionList: TransactionAttributes[];
+  account: AccountDTO;
+  transactionList: TransactionDTO[];
   getInitialData: () => void;
-  submitAddTransaction?: (
-    transaction: Omit<TransactionAttributes, "id">
-  ) => void;
-  submitEditTransaction?: (transaction: TransactionAttributes) => void;
+  submitAddTransaction?: (transaction: Omit<TransactionDTO, "id">) => void;
+  submitEditTransaction?: (transaction: TransactionDTO) => void;
   submitDeleteTransaction?: (transactionId: string) => void;
 }
 
@@ -48,9 +45,7 @@ export default function AccountDashboard({
     getInitialData();
   }, [getInitialData]);
 
-  const accountViewModel = AccountViewModelMapper.toViewModel(
-    new Account(account)
-  );
+  const accountViewModel = AccountViewModelMapper.toViewModel(account);
 
   const formattedDate = getFormattedDateNow();
   const pathname = usePathname();
@@ -84,7 +79,7 @@ export default function AccountDashboard({
       return;
     }
 
-    const editedTransaction: TransactionAttributes = {
+    const editedTransaction: TransactionDTO = {
       ...transaction,
       id: currentTransaction.id,
       currency: accountViewModel.currency,
@@ -94,12 +89,12 @@ export default function AccountDashboard({
     submitEditTransaction(editedTransaction);
   };
 
-  const handleAddTransaction = (transaction: FTransactionFormItemInput) => {
+  const handleAddTransaction = (transaction: TransactionDTO) => {
     if (!submitAddTransaction) {
       return;
     }
 
-    const newTransaction: Omit<TransactionAttributes, "id"> = {
+    const newTransaction: TransactionDTO = {
       ...transaction,
       currency: accountViewModel.currency,
       date: new Date().toISOString(),

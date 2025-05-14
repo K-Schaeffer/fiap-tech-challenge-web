@@ -1,14 +1,15 @@
-import { TransactionAttributes } from "@/domain/entities/Transaction";
-import { ServiceProvider } from "@/infrastructure/ServiceProvider";
+import { initializeHttpServices } from "@/infrastructure/configuration/HttpServiceConfiguration";
 import AccountDashboard from "@/presentation/components/AccountDashboard";
 import { MENU_ITEMS } from "@/presentation/constants/menuItems";
+import { TransactionDTO } from "@/presentation/types/TransactionDTO";
 import Head from "next/head";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 export default function DashboardView() {
-  const services = ServiceProvider.getInstance();
-  const accountService = services.getAccountService();
-  const transactionService = services.getTransactionService();
+  const { accountService, transactionService } = useMemo(
+    () => initializeHttpServices(),
+    []
+  );
 
   const [localAccount, setLocalAccount] = useState({
     fullName: "",
@@ -16,9 +17,9 @@ export default function DashboardView() {
     balance: 0,
     currency: "",
   });
-  const [localTransactions, setLocalTransactions] = useState<
-    TransactionAttributes[]
-  >([]);
+  const [localTransactions, setLocalTransactions] = useState<TransactionDTO[]>(
+    []
+  );
 
   const fetchAccount = useCallback(async () => {
     const account = await accountService.getAccountInfo();
@@ -51,7 +52,7 @@ export default function DashboardView() {
   }, [fetchAccount, fetchTransactions]);
 
   const submitAddTransaction = useCallback(
-    async (transaction: TransactionAttributes) => {
+    async (transaction: TransactionDTO) => {
       await transactionService.addTransaction(transaction);
       await fetchTransactions();
     },
@@ -59,17 +60,12 @@ export default function DashboardView() {
   );
 
   const submitEditTransaction = useCallback(
-    async (transaction: TransactionAttributes) => {
-      if (!transaction.id) {
-        return;
-      }
+    async (transaction: TransactionDTO) => {
+      if (!transaction.id) return;
 
       await transactionService.editTransaction({
-        id: transaction.id,
-        type: transaction.type,
-        value: transaction.value,
-        fileBase64: transaction.fileBase64,
-        fileName: transaction.fileName,
+        ...transaction,
+        id: transaction.id as string,
       });
       await fetchTransactions();
     },

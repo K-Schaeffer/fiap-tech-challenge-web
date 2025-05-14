@@ -1,13 +1,7 @@
 import { Transaction, TransactionType } from "@/domain/entities/Transaction";
 import { AccountRepository } from "@/domain/repositories/AccountRepository";
 import { TransactionRepository } from "@/domain/repositories/TransactionRepository";
-
-interface CreateTransactionDTO {
-  type: string;
-  value: number;
-  fileBase64?: string;
-  fileName?: string;
-}
+import { TransactionCommand } from "../commands/TransactionCommands";
 
 export class CreateTransactionUseCase {
   constructor(
@@ -15,27 +9,29 @@ export class CreateTransactionUseCase {
     private readonly accountRepository: AccountRepository
   ) {}
 
-  async execute(dto: CreateTransactionDTO): Promise<Transaction> {
-    if (!Object.values(TransactionType).includes(dto.type as TransactionType)) {
+  async execute(command: TransactionCommand): Promise<Transaction> {
+    if (
+      !Object.values(TransactionType).includes(command.type as TransactionType)
+    ) {
       throw new Error("Invalid transaction type");
     }
 
     if (
       ![TransactionType.DEPOSIT, TransactionType.LOAN].includes(
-        dto.type as TransactionType
+        command.type as TransactionType
       )
     ) {
       const account = await this.accountRepository.getAccountInfo();
-      account.validateBalance(dto.value);
+      account.validateBalance(command.value);
     }
 
     const transaction = Transaction.create({
-      type: dto.type,
-      rawValue: dto.value,
+      type: command.type,
+      rawValue: command.value,
       currency: "R$",
       date: new Date().toISOString(),
-      fileBase64: dto.fileBase64,
-      fileName: dto.fileName,
+      fileBase64: command.fileBase64,
+      fileName: command.fileName,
     });
 
     return this.transactionRepository.addTransaction({

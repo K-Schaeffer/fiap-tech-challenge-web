@@ -1,5 +1,5 @@
-import { Account } from "@/domain/entities/Account";
 import { formatCurrency } from "../formatters";
+import { AccountDTO } from "../types/AccountDTO";
 
 export interface AccountViewModel {
   firstName: string;
@@ -10,7 +10,7 @@ export interface AccountViewModel {
 }
 
 export class AccountViewModelMapper {
-  static toViewModel(account: Account): AccountViewModel {
+  static toViewModel(account: AccountDTO): AccountViewModel {
     return {
       firstName: account.firstName,
       fullName: account.fullName,
