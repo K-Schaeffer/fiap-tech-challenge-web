@@ -9,6 +9,20 @@ O protótipo das telas desenvolvidas pode ser encontrado no [Figma](https://www.
 
 O link para acesso a aplicação em prod é [https://production.d2d9243zykuhuo.amplifyapp.com/](https://production.d2d9243zykuhuo.amplifyapp.com/).
 
+## Seções
+
+- [Resumo](#resumo)
+- [Seções](#seções)
+- [Arquitetura do projeto](#arquitetura-do-projeto)
+  - [Arquitetura Limpa do Dashboard App](#arquitetura-limpa-do-dashboard-app-packagesdashboard-app)
+  - [Styleguide](#styleguide)
+  - [Demo](#demo)
+- [Rodando o projeto](#rodando-o-projeto)
+  - [Ambiente de desenvolvimento local](#ambiente-de-desenvolvimento-local)
+- [Tecnologias utilizadas](#tecnologias-utilizadas)
+- [Conceitos aplicados](#conceitos-aplicados)
+- [Outras ferramentas úteis](#outras-ferramentas-úteis)
+
 ## Arquitetura do projeto
 
 A arquitetura da segunda fase do projeto levou em consideração as decisões arquiteturais do resultado da primeira fase, tendo em vista que decidimos usar o mesmo projeto e expandir a partir dele.
@@ -30,6 +44,132 @@ Dentre as mudanças, nós temos:
 - Aplicação Root com Next, que consome os 2 microfrontends e adiciona uma navbar, além de controlar o roteamento
 
 ![Preview da segunda arquitetura](.github/architecture-2.png)
+
+### Arquitetura Limpa do Dashboard App (`/packages/dashboard-app/...`)
+
+A aplicação dashboard implementa os princípios da Arquitetura Limpa para manter a separação de responsabilidades e garantir que as regras de negócio sejam independentes de frameworks e ferramentas externas. A implementação é adaptada para a realidade do FE e do Next.js.
+
+Aqui está uma descrição detalhada de cada camada:
+
+#### 1. Camada de Domínio (`/src/domain`)
+
+O núcleo da aplicação contendo regras de negócio e entidades.
+
+- **Entidades**: Objetos centrais de negócio
+  - `Account`: Gerencia dados da conta e validação de saldo
+    - Implementa validações de negócio como `validateBalance`
+    - Encapsula atributos através de getters para proteger o estado
+    - Define exceções de domínio como `InsufficientFundsError`
+  - `Transaction`: Manipula dados e regras de transações financeiras
+    - Define tipos de transação através de `TransactionType` (DEPOSIT, WITHDRAWAL, etc.)
+    - Implementa validações de valor e tipo de transação
+    - Factory method `create` para construção segura de transações
+    - Validação cruzada com Account para verificar saldo em operações de débito
+    - Gerencia anexos de comprovantes (fileBase64, fileName)
+- **Interfaces de Repository**: Definem contratos para operações de dados
+  - `AccountRepository`: Contrato de acesso aos dados da conta
+  - `TransactionRepository`: Contrato de acesso aos dados de transações
+
+A camada de domínio é independente de todas as outras camadas e contém lógica de negócio pura, sem dependências externas.
+
+#### 2. Camada de Aplicação (`/src/application`)
+
+Orquestra o fluxo de dados e implementa casos de uso.
+
+- **Use Cases**: Implementam fluxos específicos de negócio
+  - `CreateTransactionUseCase`: Manipula a lógica de criação de transações
+    - Coordena validações entre Account e Transaction
+    - Utiliza injeção de dependência dos repositories
+    - Valida tipos de transação e saldo disponível
+  - `EditTransactionUseCase`: Gerencia atualizações de transações
+    - Valida ID da transação
+    - Reaplica regras de negócio na edição
+- **Services**: Orquestram use cases e implementam operações específicas, servindo como facade da camada de aplicação para camadas externas.
+
+  - `TransactionService`: Coordena operações de transação
+    - Encapsula instanciação e uso dos use cases
+    - Expõe interface simplificada para CRUD de transações
+    - Gerencia ciclo de vida das transações
+  - `AccountService`: Gerencia operações da conta
+    - Centraliza acesso a informações da conta
+
+- **Commands**: Definem estruturas de dados de entrada
+  - `TransactionCommand`: Estrutura de dados para criar transações
+  - `TransactionEditCommand`: Estrutura de dados para editar transações
+
+A camada de aplicação depende apenas da camada de domínio.
+
+#### 3. Camada de Infraestrutura (`/src/infrastructure`)
+
+Implementa interfaces definidas na camada de domínio e manipula comportamentos externos, servindo como a camada para tratar preocupações técnicas.
+
+- **Repositories**: Implementações concretas dos repositories do domínio
+  - `HttpAccountRepository`: Implementa operações de conta usando HTTP
+  - `HttpTransactionRepository`: Implementa operações de transações usando HTTP
+- **Configuration**: Configuração de serviços para utilização
+  - `HttpServiceConfiguration`:
+    - Implementa padrão Singleton para services
+    - Centraliza criação de repositories
+    - Gerencia injeção de dependência dos services da camada de aplicação
+
+Para a criação dos repositories a camada de infraestrutura implementa as interfaces definidas pela camada de domínio.
+
+Para a criação da configuração do service HTTP a camada de infraestrutura utiliza os repositórios concretos, junto dos services que são definidos pela camada de aplicação. É importante ressaltar que a camada de infraestrutura não depende de regras de negócio da camada de aplicação, ela apenas utiliza os services para a injeção de dependência, possibilitando acesso externo e servindo como um container.
+
+#### 4. Camada de Apresentação (`/src/presentation`)
+
+Manipula UI e interação do usuário.
+
+- **Components**: Componentes React para UI (Pages)
+  - Utilizam apenas componentes da biblioteca de components e tipos/utils da própria camada de apresentação
+- **View Models**: Adaptam dados para apresentação na UI utilizando de formatters e mappers
+- **Formatters**: Formatam dados para exibição
+  - Encapsulam lógica de formatação de moeda, data etc
+- **Providers**: Manipulam preocupações específicas do React e injeção de dependência
+  - Gerenciam estado global de tema e coisas do tipo
+- **Types**: Definem DTOs e outros tipos específicos da apresentação
+
+A camada de apresentação não depende de nenhuma camada interna para funcionar, utilizando seus próprios DTOs, formatadores e etc.
+
+#### 5. Camada Router (Next.js) (`/src/pages/`)
+
+É o entrypoint da aplicação Next e age como uma View, então é como se fosse uma camada intermediária que conecta pontos importantes, mas sem depender de regras de negócio específicas ou entrar em detalhes de implementação.
+
+- **UI**: Importa componentes, constantes e outras entidades necessárias da camada de apresentação para renderizar a tela.
+- **Infrastructure**: Utiliza a HTTP services configuration da camada de infraestrutura e utiliza esse singleton para chamar operações CRUD concretras que são solicitadas pela camada de apresentação, esta que por sua vez apenas solicita, sem saber para quem está sendo mandado.
+
+#### Exemplo de Fluxo de Dados e Injeção de Dependência
+
+Um fluxo típico para criar uma transação:
+
+```
+UI -> View -> TransactionService -> CreateTransactionUseCase ->
+  1. Valida regras com Account
+  2. Cria Transaction
+  3. Persiste via Repository
+  4. Retorna resultado através das camadas
+```
+
+A injeção de dependência é gerenciada através do `HttpServiceConfiguration`:
+
+1. Cria repositories concretos (HTTP)
+2. Injeta repositories nos services
+3. Disponibiliza services
+
+Esta arquitetura garante:
+
+- Regras de negócio isoladas na camada de domínio
+- Dependências apontam para dentro (camadas externas dependem das internas)
+- Preocupações externas são separadas da lógica de negócio
+- Cada camada pode evoluir independentemente
+- Alta testabilidade devido à clara separação de responsabilidades
+- Reutilização de código através de abstrações bem definidas
+
+#### Demonstração visual das camadas e dependências
+
+Demonstração visual que representa qual camada tem conhecimento de outra camada ou algum tipo de dependência. Não representa o fluxo de dados abordado anteriormente.
+
+![Clean Arch Dependency Preview](.github/dashboard-clean-arch.jpg)
 
 ### Styleguide
 
@@ -100,132 +240,6 @@ Tenha certeza de que os componentes estão buildados em seu ambiente, caso contr
 3. Storybook e build da lib em watch mode: `npx lerna run dev:concurrently`
 
    a. A documentação iniciará em [http://localhost:6006](http://localhost:6006) e a lib estará buildando em watch-mode (ou seja, voce pode fazer alterações e verificar nos projetos que consomem em tempo real, caso estejam rodando)
-
-## Arquitetura Limpa do Dashboard App (`/packages/dashboard-app/...`)
-
-A aplicação dashboard implementa os princípios da Arquitetura Limpa para manter a separação de responsabilidades e garantir que as regras de negócio sejam independentes de frameworks e ferramentas externas. A implementação é adaptada para a realidade do FE e do Next.js.
-
-Aqui está uma descrição detalhada de cada camada:
-
-### 1. Camada de Domínio (`/src/domain`)
-
-O núcleo da aplicação contendo regras de negócio e entidades.
-
-- **Entidades**: Objetos centrais de negócio
-  - `Account`: Gerencia dados da conta e validação de saldo
-    - Implementa validações de negócio como `validateBalance`
-    - Encapsula atributos através de getters para proteger o estado
-    - Define exceções de domínio como `InsufficientFundsError`
-  - `Transaction`: Manipula dados e regras de transações financeiras
-    - Define tipos de transação através de `TransactionType` (DEPOSIT, WITHDRAWAL, etc.)
-    - Implementa validações de valor e tipo de transação
-    - Factory method `create` para construção segura de transações
-    - Validação cruzada com Account para verificar saldo em operações de débito
-    - Gerencia anexos de comprovantes (fileBase64, fileName)
-- **Interfaces de Repository**: Definem contratos para operações de dados
-  - `AccountRepository`: Contrato de acesso aos dados da conta
-  - `TransactionRepository`: Contrato de acesso aos dados de transações
-
-A camada de domínio é independente de todas as outras camadas e contém lógica de negócio pura, sem dependências externas.
-
-### 2. Camada de Aplicação (`/src/application`)
-
-Orquestra o fluxo de dados e implementa casos de uso.
-
-- **Use Cases**: Implementam fluxos específicos de negócio
-  - `CreateTransactionUseCase`: Manipula a lógica de criação de transações
-    - Coordena validações entre Account e Transaction
-    - Utiliza injeção de dependência dos repositories
-    - Valida tipos de transação e saldo disponível
-  - `EditTransactionUseCase`: Gerencia atualizações de transações
-    - Valida ID da transação
-    - Reaplica regras de negócio na edição
-- **Services**: Orquestram use cases e implementam operações específicas, servindo como facade da camada de aplicação para camadas externas.
-
-  - `TransactionService`: Coordena operações de transação
-    - Encapsula instanciação e uso dos use cases
-    - Expõe interface simplificada para CRUD de transações
-    - Gerencia ciclo de vida das transações
-  - `AccountService`: Gerencia operações da conta
-    - Centraliza acesso a informações da conta
-
-- **Commands**: Definem estruturas de dados de entrada
-  - `TransactionCommand`: Estrutura de dados para criar transações
-  - `TransactionEditCommand`: Estrutura de dados para editar transações
-
-A camada de aplicação depende apenas da camada de domínio.
-
-### 3. Camada de Infraestrutura (`/src/infrastructure`)
-
-Implementa interfaces definidas na camada de domínio e manipula comportamentos externos, servindo como a camada para tratar preocupações técnicas.
-
-- **Repositories**: Implementações concretas dos repositories do domínio
-  - `HttpAccountRepository`: Implementa operações de conta usando HTTP
-  - `HttpTransactionRepository`: Implementa operações de transações usando HTTP
-- **Configuration**: Configuração de serviços para utilização
-  - `HttpServiceConfiguration`:
-    - Implementa padrão Singleton para services
-    - Centraliza criação de repositories
-    - Gerencia injeção de dependência dos services da camada de aplicação
-
-Para a criação dos repositories a camada de infraestrutura implementa as interfaces definidas pela camada de domínio.
-
-Para a criação da configuração do service HTTP a camada de infraestrutura utiliza os repositórios concretos, junto dos services que são definidos pela camada de aplicação. É importante ressaltar que a camada de infraestrutura não depende de regras de negócio da camada de aplicação, ela apenas utiliza os services para a injeção de dependência, possibilitando acesso externo e servindo como um container.
-
-### 4. Camada de Apresentação (`/src/presentation`)
-
-Manipula UI e interação do usuário.
-
-- **Components**: Componentes React para UI (Pages)
-  - Utilizam apenas componentes da biblioteca de components e tipos/utils da própria camada de apresentação
-- **View Models**: Adaptam dados para apresentação na UI utilizando de formatters e mappers
-- **Formatters**: Formatam dados para exibição
-  - Encapsulam lógica de formatação de moeda, data etc
-- **Providers**: Manipulam preocupações específicas do React e injeção de dependência
-  - Gerenciam estado global de tema e coisas do tipo
-- **Types**: Definem DTOs e outros tipos específicos da apresentação
-
-A camada de apresentação não depende de nenhuma camada interna para funcionar, utilizando seus próprios DTOs, formatadores e etc.
-
-### 5. Camada Router (Next.js) (`/src/pages/`)
-
-É o entrypoint da aplicação Next e age como uma View, então é como se fosse uma camada intermediária que conecta pontos importantes, mas sem depender de regras de negócio específicas ou entrar em detalhes de implementação.
-
-- **UI**: Importa componentes, constantes e outras entidades necessárias da camada de apresentação para renderizar a tela.
-- **Infrastructure**: Utiliza a HTTP services configuration da camada de infraestrutura e utiliza esse singleton para chamar operações CRUD concretras que são solicitadas pela camada de apresentação, esta que por sua vez apenas solicita, sem saber para quem está sendo mandado.
-
-### Exemplo de Fluxo de Dados e Injeção de Dependência
-
-Um fluxo típico para criar uma transação:
-
-```
-UI -> View -> TransactionService -> CreateTransactionUseCase ->
-  1. Valida regras com Account
-  2. Cria Transaction
-  3. Persiste via Repository
-  4. Retorna resultado através das camadas
-```
-
-A injeção de dependência é gerenciada através do `HttpServiceConfiguration`:
-
-1. Cria repositories concretos (HTTP)
-2. Injeta repositories nos services
-3. Disponibiliza services
-
-Esta arquitetura garante:
-
-- Regras de negócio isoladas na camada de domínio
-- Dependências apontam para dentro (camadas externas dependem das internas)
-- Preocupações externas são separadas da lógica de negócio
-- Cada camada pode evoluir independentemente
-- Alta testabilidade devido à clara separação de responsabilidades
-- Reutilização de código através de abstrações bem definidas
-
-### Demonstração visual das camadas e dependências
-
-Demonstração visual que representa qual camada tem conhecimento de outra camada ou algum tipo de dependência. Não representa o fluxo de dados abordado anteriormente.
-
-![Clean Arch Dependency Preview](.github/dashboard-clean-arch.png)
 
 ## Tecnologias utilizadas
 
