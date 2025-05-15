@@ -1,4 +1,4 @@
-import ThemeProviderWrapper from "@/theme/ThemeProviderWrapper";
+import { ThemeProviderWrapper } from "@/presentation/providers/ThemeProvider";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v14-appRouter";
 import { AppProps } from "next/app";
 import "./globals.css";

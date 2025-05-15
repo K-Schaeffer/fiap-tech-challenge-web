@@ -1,15 +1,9 @@
 "use client";
-import { Account } from "@/services/Account/Account.model";
-import {
-  Transaction,
-  TransactionData,
-  TransactionInput,
-} from "@/services/Transaction/Transaction.model";
-import {
-  formatCurrency,
-  formatDate,
-  getFormattedDateNow,
-} from "@/utils/formatters";
+import { getFormattedDateNow } from "@/presentation/formatters";
+import { AccountDTO } from "@/presentation/types/AccountDTO";
+import { TransactionDTO } from "@/presentation/types/TransactionDTO";
+import { AccountViewModelMapper } from "@/presentation/view-models/AccountViewModel";
+import { TransactionViewModelMapper } from "@/presentation/view-models/TransactionViewModel";
 import { Container, Grid2 } from "@mui/material";
 import {
   FAccountSummaryCard,
@@ -21,9 +15,7 @@ import {
   FTransactionForm,
   FTransactionFormCard,
   FTransactionFormItem,
-  FTransactionFormItemInput,
   FTransactionListCard,
-  TransactionItem,
 } from "components";
 import Image from "next/image";
 import Link from "next/link";
@@ -32,11 +24,11 @@ import { useEffect, useState } from "react";
 
 interface AccountDashboardProps {
   menuItems: FMenuListItem[];
-  account: Account;
-  transactionList: Transaction[];
+  account: AccountDTO;
+  transactionList: TransactionDTO[];
   getInitialData: () => void;
-  submitAddTransaction?: (transaction: TransactionInput) => void;
-  submitEditTransaction?: (transaction: TransactionData) => void;
+  submitAddTransaction?: (transaction: Omit<TransactionDTO, "id">) => void;
+  submitEditTransaction?: (transaction: TransactionDTO) => void;
   submitDeleteTransaction?: (transactionId: string) => void;
 }
 
@@ -49,20 +41,12 @@ export default function AccountDashboard({
   submitEditTransaction,
   submitDeleteTransaction,
 }: AccountDashboardProps) {
-  const loadData = async () => {
-    getInitialData();
-  };
-
   useEffect(() => {
-    loadData();
-  }, []);
+    getInitialData();
+  }, [getInitialData]);
 
-  // const accountUpdatedEvent = new CustomEvent("dashboardApp: accountUpdated", {
-  //   detail: account.fullName,
-  // });
-  // document.dispatchEvent(accountUpdatedEvent);
+  const accountViewModel = AccountViewModelMapper.toViewModel(account);
 
-  const formattedBalance = formatCurrency(account.balance, account.currency);
   const formattedDate = getFormattedDateNow();
   const pathname = usePathname();
 
@@ -71,50 +55,48 @@ export default function AccountDashboard({
     current: item.path === pathname,
   }));
 
-  const formattedTransactions: TransactionItem[] = transactionList.map(
-    (transaction) => ({
-      id: transaction.id,
-      type: transaction.type,
-      formattedDate: formatDate(transaction.date),
-      formattedValue: formatCurrency(transaction.value, transaction.currency),
-    })
-  );
+  const formattedTransactions =
+    TransactionViewModelMapper.toViewModelList(transactionList);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [currentTransaction, setCurrentTransaction] = useState<Transaction>();
+  const [currentTransaction, setCurrentTransaction] =
+    useState<FTransactionFormItem>();
 
   const openEditModal = (transactionId: string) => {
-    setCurrentTransaction(
-      transactionList.find(({ id }) => id === transactionId)
-    );
-
+    const transaction = transactionList.find(({ id }) => id === transactionId);
+    if (transaction) {
+      setCurrentTransaction({
+        id: transaction.id!,
+        type: transaction.type,
+        value: transaction.value,
+      });
+    }
     setIsModalOpen(true);
   };
 
   const handleEditTransaction = (transaction: FTransactionFormItem) => {
-    if (!submitEditTransaction) {
+    if (!submitEditTransaction || !currentTransaction?.id) {
       return;
     }
 
-    const editedTransaction: TransactionData = {
+    const editedTransaction: TransactionDTO = {
       ...transaction,
-      currency: "R$",
+      id: currentTransaction.id,
+      currency: accountViewModel.currency,
       date: new Date().toISOString(),
     };
 
     submitEditTransaction(editedTransaction);
   };
 
-  const handleAddTransaction = (transaction: FTransactionFormItemInput) => {
+  const handleAddTransaction = (transaction: TransactionDTO) => {
     if (!submitAddTransaction) {
       return;
     }
 
-    const newTransaction: TransactionInput = {
+    const newTransaction: TransactionDTO = {
       ...transaction,
-      currency: "R$",
-
+      currency: accountViewModel.currency,
       date: new Date().toISOString(),
     };
 
@@ -152,9 +134,9 @@ export default function AccountDashboard({
             gap={3}
           >
             <FAccountSummaryCard
-              firstName={account.firstName}
-              currency={account.currency}
-              balance={formattedBalance}
+              firstName={accountViewModel.firstName}
+              currency={accountViewModel.currency}
+              balance={accountViewModel.formattedBalance}
               date={formattedDate}
             >
               <Image src="/assets/card-pixels-2.svg" alt="" fill />
@@ -163,7 +145,7 @@ export default function AccountDashboard({
             </FAccountSummaryCard>
             <FTransactionFormCard
               addTransaction={handleAddTransaction}
-              accountBalance={account.balance}
+              accountBalance={accountViewModel.balance}
             >
               <Image src="/assets/card-pixels-3.svg" alt="" layout="fill" />
               <Image src="/assets/card-pixels-4.svg" alt="" layout="fill" />
@@ -193,7 +175,7 @@ export default function AccountDashboard({
           handleClose={() => setIsModalOpen(false)}
         >
           <FTransactionForm
-            accountBalance={account.balance}
+            accountBalance={accountViewModel.balance}
             currentTransaction={currentTransaction}
             editTransaction={handleEditTransaction}
             closeEditModal={() => setIsModalOpen(false)}

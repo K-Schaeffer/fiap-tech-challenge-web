@@ -3,11 +3,11 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { light } from "components/theme";
 
-interface ThemeProviderWrapperProps {
+interface ThemeProviderProps {
   children: React.ReactNode;
 }
 
-const ThemeProviderWrapper = ({ children }: ThemeProviderWrapperProps) => {
+export const ThemeProviderWrapper = ({ children }: ThemeProviderProps) => {
   return (
     <ThemeProvider theme={light}>
       <CssBaseline />
@@ -15,5 +15,3 @@ const ThemeProviderWrapper = ({ children }: ThemeProviderWrapperProps) => {
     </ThemeProvider>
   );
 };
-
-export default ThemeProviderWrapper;
