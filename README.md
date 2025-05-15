@@ -187,7 +187,7 @@ Manipula UI e interação do usuário.
 
 A camada de apresentação não depende de nenhuma camada interna para funcionar, utilizando seus próprios DTOs, formatadores e etc.
 
-### 5. Conectando tudo (`/src/pages/index`)
+### 5. Camada Router (Next.js) (`/src/pages/`)
 
 É o entrypoint da aplicação Next e age como uma View, então é como se fosse uma camada intermediária que conecta pontos importantes, mas sem depender de regras de negócio específicas ou entrar em detalhes de implementação.
 
@@ -220,6 +220,12 @@ Esta arquitetura garante:
 - Cada camada pode evoluir independentemente
 - Alta testabilidade devido à clara separação de responsabilidades
 - Reutilização de código através de abstrações bem definidas
+
+### Demonstração visual das camadas e dependências
+
+Demonstração visual que representa qual camada tem conhecimento de outra camada ou algum tipo de dependência. Não representa o fluxo de dados abordado anteriormente.
+
+![Clean Arch Dependency Preview](.github/dashboard-clean-arch.png)
 
 ## Tecnologias utilizadas
 
