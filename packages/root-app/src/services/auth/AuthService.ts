@@ -1,6 +1,5 @@
 export interface AuthResponse {
   token: string;
-  userId: string;
 }
 
 export interface AuthService {
