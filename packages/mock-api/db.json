@@ -1,4 +1,8 @@
 {
+  "user": {
+    "email": "joana@email.com",
+    "password": "123456"
+  },
   "account": {
     "fullName": "Joana da Silva Oliveira",
     "firstName": "Joana",

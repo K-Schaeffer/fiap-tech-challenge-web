@@ -8,6 +8,7 @@ Trata-se de uma plataforma fictícia para a empresa financeira "Bytebank".
 O protótipo das telas desenvolvidas pode ser encontrado no [Figma](https://www.figma.com/design/ns5TC3X5Xr8V7I3LYKg9KA/Projeto-Financeiro?node-id=503-4264&t=nhWQMyJ7ZmXNWbb6-1).
 
 O link para acesso a aplicação em prod é [https://production.d2d9243zykuhuo.amplifyapp.com/](https://production.d2d9243zykuhuo.amplifyapp.com/).
+A aplicação em prod está seguindo a tag/versão 2.0, então as implementações da versão 4.0 não estão presentes.
 
 ## Seções
 
@@ -15,19 +16,32 @@ O link para acesso a aplicação em prod é [https://production.d2d9243zykuhuo.a
 - [Seções](#seções)
 - [Arquitetura do projeto](#arquitetura-do-projeto)
   - [Arquitetura Limpa do Dashboard App](#arquitetura-limpa-do-dashboard-app-packagesdashboard-app)
+    - [Exemplo de Fluxo de Dados e Injeção de Dependência](#exemplo-de-fluxo-de-dados-e-injeção-de-dependência)
+    - [Demonstração visual das camadas e dependências](#demonstração-visual-das-camadas-e-dependências)
+  - [Gerenciamento de autenticação no Root App](#gerenciamento-de-autenticação-no-root-app-packagesroot-app)
+    - [Middleware de Autenticação](#middleware-de-autenticação)
+    - [Armazenamento Seguro de Token](#armazenamento-seguro-de-token)
+    - [Integração com Microfrontends](#integração-com-microfrontends)
+    - [Responsabilidades do Root App](#responsabilidades-do-root-app)
+  - [Implementação de Segurança do Mock Server](#implementação-de-segurança-do-mock-server)
+    - [Criptografia e Gerenciamento de Tokens](#criptografia-e-gerenciamento-de-tokens)
+    - [Sistema de Rate Limiting](#sistema-de-rate-limiting)
+    - [Fluxo de Autenticação](#fluxo-de-autenticação)
+    - [Medidas de Segurança Adicionais](#medidas-de-segurança-adicionais)
   - [Styleguide](#styleguide)
   - [Demo](#demo)
 - [Rodando o projeto](#rodando-o-projeto)
   - [Ambiente de desenvolvimento local](#ambiente-de-desenvolvimento-local)
+  - [Realizando login](#realizando-login)
 - [Tecnologias utilizadas](#tecnologias-utilizadas)
 - [Conceitos aplicados](#conceitos-aplicados)
 - [Outras ferramentas úteis](#outras-ferramentas-úteis)
 
 ## Arquitetura do projeto
 
-A arquitetura da segunda fase do projeto levou em consideração as decisões arquiteturais do resultado da primeira fase, tendo em vista que decidimos usar o mesmo projeto e expandir a partir dele.
+A arquitetura da quarta fase do projeto levou em consideração as decisões arquiteturais do resultado da primeira e segunda fase, tendo em vista que decidi usar o mesmo projeto e expandir a partir dele.
 
-A arquitetura anterior era focada em uma aplicação Next com diferentes renderizações e separação clara entre UI e dados.
+A arquitetura na primeira fase era focada em uma aplicação Next com diferentes renderizações e separação clara entre UI e dados.
 
 ![Primeiro preview de arquitetura](.github/architecture-1.png)
 
@@ -35,15 +49,25 @@ Na segunda fase nós desacoplamos essa arquitetura em 4 aplicações diferentes,
 
 ![Preview dos módulos](.github/graph.png)
 
-Dentre as mudanças, nós temos:
-
-- Biblioteca de componentes com React, MUI e Vite;
-- 2 Microfrontends com Next
-  - Dashboard app
-  - Landing app
-- Aplicação Root com Next, que consome os 2 microfrontends e adiciona uma navbar, além de controlar o roteamento
-
 ![Preview da segunda arquitetura](.github/architecture-2.png)
+
+Já na quarta fase, mantive os mesmos módulos, mas expandi as responsabilidades de dois dos microfrontends e do mock-server:
+
+- **Dashboard App**: Foi implementada a Clean Architecture para organizar o projeto, garantindo a separação de responsabilidades e a independência das regras de negócio em relação a frameworks e ferramentas externas.
+
+- **Aplicação Root**: Adicionei um sistema de autenticação compartilhada entre os microfrontends, centralizando o controle de acesso. Isso inclui:
+
+  - Middleware para interceptação de rotas e proteção de páginas privadas.
+  - Mecanismo de login e logout com gerenciamento centralizado de sessão.
+  - Armazenamento seguro de tokens de autenticação em cookies HTTP para prevenir ataques XSS e CSRF.
+  - Propagação automática do estado de autenticação para todos os microfrontends, garantindo uma experiência unificada para o usuário.
+
+- **Mock Server**: A API de testes foi expandida para incluir:
+  - Geração de tokens JWT com criptografia avançada utilizando AES-256-GCM, garantindo segurança e integridade dos dados.
+  - Mecanismos de proteção contra ataques, como rate limiting para prevenir força bruta e validação de tokens para evitar replay attacks.
+  - Implementação de um sistema robusto de autenticação e autorização, mesmo em ambiente de desenvolvimento, seguindo práticas modernas de segurança.
+
+Essas melhorias foram realizadas para garantir maior segurança, organização e escalabilidade ao projeto, alinhando-se às melhores práticas de desenvolvimento e arquitetura de software.
 
 ### Arquitetura Limpa do Dashboard App (`/packages/dashboard-app/...`)
 
@@ -171,6 +195,227 @@ Demonstração visual que representa qual camada tem conhecimento de outra camad
 
 ![Clean Arch Dependency Preview](.github/dashboard-clean-arch.jpg)
 
+### Gerenciamento de autenticação no Root App (`/packages/root-app/...`)
+
+O Root App atua como um shell que encapsula todas as outras aplicações (microfrontends), sendo responsável pelo controle de acesso e roteamento centralizado. É o root-app que renderiza a navbar que é compartilhada entre todos os microfrontends, e é ela que realiza login e logout.
+
+Aqui está uma explicação detalhada de como funciona:
+
+#### Middleware de Autenticação
+
+1. **Interceptação de Rotas**:
+
+   - Todas as requisições passam pelo middleware em `src/middleware.ts`
+   - Verifica a presença do token JWT nos cookies
+   - Redireciona para login quando necessário
+
+2. **Proteção de Rotas**:
+
+   - Rotas públicas (`/`, `/login`) são acessíveis sem autenticação
+   - Rotas privadas (`/dashboard/*`) requerem autenticação
+   - Redirecionamento automático baseado no estado de autenticação (usuário já autenticado é jogado para fora de `/login`)
+
+3. **Gestão de Estado de Autenticação**:
+   - Context API do React para compartilhar estado de auth
+   - Hook personalizado `useAuth` para acesso ao contexto
+   - Atualização em tempo real do estado de autenticação
+
+#### Armazenamento Seguro de Token
+
+A implementação atual utiliza um sistema seguro de armazenamento de tokens de autenticação através de cookies HTTP. Aqui está uma explicação detalhada do funcionamento:
+
+1. **Armazenamento em Cookie**: O token é armazenado em um cookie HTTP em vez de localStorage ou sessionStorage, o que oferece maior segurança contra ataques XSS (Cross-Site Scripting).
+
+2. **Configurações de Segurança do Cookie**:
+
+   - `path=/`: Garante que o cookie está disponível em todo o domínio
+   - `max-age`: Define a validade do token para 7 dias (em segundos)
+   - `SameSite=Strict`: Previne ataques CSRF (Cross-Site Request Forgery) permitindo o envio do cookie apenas em requisições originadas do mesmo site
+   - `Secure`: Em ambiente de produção, garante que o cookie só será transmitido através de conexões HTTPS
+
+3. **Verificação de Ambiente**:
+   - A flag `Secure` é automaticamente adicionada em ambiente de produção
+   - Em desenvolvimento, a flag é omitida para permitir o uso de HTTP local
+   - Verificação de `window` para compatibilidade com SSR (Server-Side Rendering)
+
+Esta implementação segue as melhores práticas de segurança web modernas, protegendo contra:
+
+- Ataques XSS
+- Ataques CSRF
+- Interceptação de dados em trânsito
+- Vazamento acidental de tokens
+
+#### Integração com Microfrontends
+
+1. **Compartilhamento de Estado**:
+
+   - Token compartilhado via cookie entre todas as aplicações
+   - Estado de autenticação sincronizado através do AuthProvider
+   - Propagação automática de logout para todos os microfrontends
+
+2. **Roteamento Federado**:
+
+   - Configuração de Module Federation para roteamento
+   - Carregamento dinâmico de microfrontends baseado na rota
+   - Fallback para página 404 em rotas inválidas
+
+3. **Fluxo de Autenticação**:
+
+   ```typescript
+   // Exemplo simplificado do fluxo
+   middleware(request) {
+     if (isPublicRoute(request.nextUrl.pathname)) {
+       return NextResponse.next()
+     }
+
+     const token = request.cookies.get('auth_token')
+     if (!token && isProtectedRoute(request.nextUrl.pathname)) {
+       return NextResponse.redirect(new URL('/login', request.url))
+     }
+
+     return NextResponse.next()
+   }
+   ```
+
+#### Responsabilidades do Root App
+
+1. **Gestão de Layout**:
+
+   - Header/Navbar global
+   - Tema consistente entre aplicações
+
+2. **Controle de Sessão**:
+
+   - Gerenciamento centralizado do token
+   - Login e logout globais
+
+3. **Segurança**:
+   - Proteção contra acesso não autorizado
+   - Armazenamento seguro de token em cookies quando é realizado o login
+
+Este design permite uma experiência unificada e segura, onde o Root App atua como guardião do acesso às diferentes partes do sistema, mantendo o controle de autenticação centralizado enquanto permite que cada microfrontend mantenha sua independência de implementação.
+
+### Implementação de Segurança do Mock Server
+
+#### Visão Geral da Implementação
+
+O servidor mock implementa um sistema robusto de autenticação e autorização, utilizando práticas de segurança modernas mesmo em ambiente de desenvolvimento. Esta implementação serve como um modelo para ambientes de produção.
+
+#### Criptografia e Gerenciamento de Tokens
+
+1. **Algoritmo de Criptografia**:
+
+   - Utiliza AES-256-GCM (Galois/Counter Mode)
+   - Oferece autenticação e criptografia simultaneamente
+   - Implementado através do módulo nativo `crypto` do Node.js
+
+2. **Processo de Geração de Token**:
+
+   ```typescript
+   // Estrutura do payload do token
+   {
+     id: string; // ID do usuário
+     email: string; // Email do usuário
+     exp: number; // Timestamp de expiração
+     jti: string; // ID único do token para invalidação
+     iat: number; // Timestamp de criação
+   }
+   ```
+
+3. **Componentes do Token**:
+   - Salt único por token (16 bytes)
+   - IV (Vetor de Inicialização - 16 bytes)
+   - Tag de Autenticação
+   - Payload criptografado
+4. **Processo de Derivação de Chave**:
+   - Utiliza PBKDF2 (Password-Based Key Derivation Function 2)
+   - 100.000 iterações
+   - SHA-512 como função hash
+   - Chave de 32 bytes
+   - Salt único por operação
+
+#### Sistema de Rate Limiting
+
+1. **Configuração**:
+
+   - Máximo de 5 tentativas de login por IP
+   - Período de bloqueio de 15 minutos
+   - Limpeza automática de registros expirados
+
+2. **Estrutura de Dados**:
+
+   ```typescript
+   Map<
+     string,
+     {
+       count: number; // Número de tentativas
+       firstAttempt: number; // Timestamp da primeira tentativa
+     }
+   >;
+   ```
+
+3. **Processo de Verificação**:
+   - Rastreamento por IP
+   - Reset automático após período de bloqueio
+   - Bloqueio preventivo após exceder limite
+
+#### Fluxo de Autenticação
+
+1. **Login**:
+
+   ```
+   Cliente → Verificação Rate Limit → Validação Credenciais → Geração Token → Resposta
+   ```
+
+2. **Validação de Token**:
+   ```
+   Request → Extração Bearer Token → Descriptografia → Validação → Autorização
+   ```
+
+#### Medidas de Segurança Adicionais
+
+1. **Headers de Segurança**:
+
+   - `Authorization: Bearer <token>`
+   - Validação estrita do formato
+   - Sem exposição de informações sensíveis em erros
+
+2. **Proteção contra Ataques**:
+
+   - Timing attacks (comparações em tempo constante)
+   - Força bruta (rate limiting)
+   - Replay attacks (JTI único por token)
+
+3. **Gestão de Erros**:
+   - Mensagens genéricas para falhas de autenticação
+   - Logging seguro sem exposição de dados sensíveis
+   - Tratamento adequado de exceções
+
+#### Configurações do Ambiente
+
+```typescript
+const config = {
+  tokenExpiration: 3600000, // 1 hora em millisegundos
+  maxLoginAttempts: 5, // Tentativas permitidas
+  lockoutDuration: 900000, // 15 minutos em millisegundos
+  keyIterations: 100000, // Iterações PBKDF2
+  keyLength: 32, // Tamanho da chave em bytes
+  saltLength: 16, // Tamanho do salt em bytes
+};
+```
+
+#### Observações para Desenvolvimento
+
+1. **Ambiente Local**:
+
+   - Chave secreta gerada automaticamente no início da aplicação
+   - Persistência em memória do rate limiting
+
+2. **Limitações do Ambiente Mock**:
+   - Armazenamento em memória (não persistente)
+   - Sem suporte a revogação de tokens
+   - Sem sincronização entre múltiplas instâncias
+
 ### Styleguide
 
 Para o desenvolvimento do projeto nós seguimos o style guide proposto, porém com adaptações para seguir o [Material Design](https://m3.material.io/) e outras práticas que o grupo achou pertinente mudar.
@@ -180,7 +425,7 @@ Para o desenvolvimento do projeto nós seguimos o style guide proposto, porém c
 
 ### Demo
 
-Video de demonstração do projeto no [Youtube](https://www.youtube.com/watch?v=s-Wxs5mpjcw).
+Video de demonstração do projeto no [Youtube]().
 
 ## Rodando o projeto
 
@@ -240,6 +485,16 @@ Tenha certeza de que os componentes estão buildados em seu ambiente, caso contr
 3. Storybook e build da lib em watch mode: `npx lerna run dev:concurrently`
 
    a. A documentação iniciará em [http://localhost:6006](http://localhost:6006) e a lib estará buildando em watch-mode (ou seja, voce pode fazer alterações e verificar nos projetos que consomem em tempo real, caso estejam rodando)
+
+### Realizando login
+
+Nesta fase o projeto recebeu uma camada de autenticação, então para conseguir testar o app será necessário realizar o login. O login é simples, basta usar as credenciais de acesso presentes no `db.json` do Mock Server e fazer login através do Root-App.
+
+Os valores padrão são:
+**email**:`joana@email.com`
+**senha**:`123456`
+
+Caso queira essas credenciais podem ser atualizadas.
 
 ## Tecnologias utilizadas
 
