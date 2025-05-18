@@ -3,7 +3,7 @@ import { NextFederationPlugin } from "@module-federation/nextjs-mf";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   webpack: (config) => {
-    config.output.publicPath = "auto";
+    config.output.publicPath = "/_next/";
     config.plugins.push(
       new NextFederationPlugin({
         name: "dashboardApp",
