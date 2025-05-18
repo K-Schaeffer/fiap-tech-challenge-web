@@ -25,6 +25,9 @@ export function FInput({
       }}
       noValidate
       autoComplete="off"
+      onSubmit={(e) => {
+        e.preventDefault();
+      }}
     >
       <TextField
         {...options}
