@@ -62,6 +62,14 @@ const nextConfig = {
     return config;
   },
   reactStrictMode: true,
+  swcMinify: true,
+  images: {
+    domains: ["localhost"],
+    unoptimized: false,
+  },
+  experimental: {
+    serverActions: true,
+  },
 };
 
 export default nextConfig;
