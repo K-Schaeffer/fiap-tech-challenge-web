@@ -1,30 +1,33 @@
 import { HttpAuthService } from "@/services/auth/HttpAuthService";
-import { Box, Button, Container, TextField, Typography } from "@mui/material";
+import { Box, Container, Typography } from "@mui/material";
+import { FAlert, FButton, FInput } from "components";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [alertOpen, setAlertOpen] = useState(false);
   const router = useRouter();
-  const authService = new HttpAuthService();
+  const authService = useMemo(() => new HttpAuthService(), []);
 
   useEffect(() => {
     if (authService.isAuthenticated()) {
       router.replace("/dashboard");
     }
-  }, [router]);
+  }, [authService, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError("");
 
     try {
       await authService.login(email, password);
       router.push("/dashboard");
-    } catch (err) {
-      setError("Invalid email or password");
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_) {
+      setError("Credenciais inválidas");
+      setAlertOpen(true);
     }
   };
 
@@ -39,47 +42,61 @@ export default function LoginPage() {
         }}
       >
         <Typography component="h1" variant="h5">
-          Sign in
+          Seja bem-vindo(a) de volta!
         </Typography>
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-          {error && (
-            <Typography color="error" textAlign="center" sx={{ mb: 2 }}>
-              {error}
-            </Typography>
-          )}
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            id="email"
-            label="Email Address"
-            name="email"
-            autoComplete="email"
-            autoFocus
-            value={email}
+        {error && (
+          <FAlert
+            severity="error"
+            text={error}
+            open={alertOpen}
+            onClose={() => setAlertOpen(false)}
+          />
+        )}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            marginTop: 2,
+            width: "100%",
+          }}
+        >
+          <FInput
+            options={{
+              margin: "normal",
+              id: "email",
+              label: "Email",
+              name: "email",
+              autoComplete: "email",
+              autoFocus: true,
+              value: email,
+            }}
+            textposition="left"
             onChange={(e) => setEmail(e.target.value)}
           />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            name="password"
-            label="Password"
-            type="password"
-            id="password"
-            autoComplete="current-password"
-            value={password}
+          <FInput
+            options={{
+              margin: "normal",
+              name: "password",
+              label: "Senha",
+              type: "password",
+              id: "password",
+              autoComplete: "current-password",
+              value: password,
+            }}
+            textposition="left"
             onChange={(e) => setPassword(e.target.value)}
           />
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{ mt: 3, mb: 2 }}
-          >
-            Sign In
-          </Button>
         </Box>
+        <FButton
+          innerText="Entrar"
+          options={{
+            fullWidth: true,
+            variant: "contained",
+            sx: { mt: 3, mb: 2 },
+          }}
+          onClick={handleSubmit}
+        />
       </Box>
     </Container>
   );

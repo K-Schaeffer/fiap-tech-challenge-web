@@ -36,11 +36,9 @@ interface RootViewProps {
 }
 
 export default function RootViewHome({ menuItems }: RootViewProps) {
-  const handleNewAccount = async () => {
-    router.push("/dashboard");
-  };
+  const handleNewAccount = () => {};
   const handleLogin = async () => {
-    router.push("/dashboard");
+    router.push("/login");
   };
 
   return (
