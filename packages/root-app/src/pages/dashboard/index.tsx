@@ -1,33 +1,25 @@
+import { useAuth } from "@/services/auth/AuthContext";
 import { AccountCircle } from "@mui/icons-material";
 import { Box, Typography } from "@mui/material";
-import { FHeader, FMenuDropdown } from "components";
+import { FButton, FHeader, FMenuDropdown } from "components";
 import dynamic from "next/dynamic";
 import Head from "next/head";
 import Link from "next/link";
-// import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 
 const DashboardApp = dynamic(() => import("dashboardApp/Index"), {
   ssr: false,
 });
 
-// interface AccountUpdatedEvent extends Event {
-//   detail: string;
-// }
-
 export default function RootViewDashboard() {
   const fullName: string = "Joana da Silva Oliveira";
+  const { logout } = useAuth();
+  const router = useRouter();
 
-  // const [updatedName, setUpdatedName] = useState(fullName);
-
-  // // useEffect(() => {
-  // //   document.addEventListener(
-  // //     "dashboardApp: accountUpdated",
-  // //     (event: Event) => {
-  // //       const accountUpdatedEvent = event as AccountUpdatedEvent;
-  // //       setUpdatedName(accountUpdatedEvent.detail);
-  // //     }
-  // //   );
-  // // }, []);
+  const handleLogout = () => {
+    logout();
+    router.push("/");
+  };
 
   return (
     <>
@@ -51,6 +43,15 @@ export default function RootViewDashboard() {
             <Link href={"/"} style={{ display: "flex" }}>
               <AccountCircle color="secondary" sx={{ fontSize: 40 }} />
             </Link>
+            <FButton
+              innerText="Sair"
+              options={{
+                variant: "text",
+                color: "secondary",
+                size: "small",
+              }}
+              onClick={handleLogout}
+            />
           </Box>
         }
       />
