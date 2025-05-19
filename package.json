@@ -9,7 +9,7 @@
     "dev:apps": "lerna run dev --scope root-app --scope dashboard-app --scope landing-app --scope mock-api --stream",
     "build": "lerna run build --stream",
     "build:components": "lerna run build --scope components --stream",
-    "build:root": "lerna run build --scope components --stream",
+    "build:root": "lerna run build --scope root-app --stream",
     "build:dashboard": "lerna run build --scope dashboard-app --stream",
     "build:landing": "lerna run build --scope landing-app --stream",
     "lint": "lerna run lint",
