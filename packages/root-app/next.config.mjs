@@ -68,9 +68,6 @@ const nextConfig = {
     domains: ["localhost"],
     unoptimized: false,
   },
-  experimental: {
-    serverActions: true,
-  },
 };
 
 export default nextConfig;
