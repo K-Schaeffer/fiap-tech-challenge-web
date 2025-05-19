@@ -1,4 +1,4 @@
-# FIAP Tech Challenge - Fase 2
+# FIAP Tech Challenge - Fase 4
 
 Projeto desenvolvido em grupo para o segundo tech challenge da FIAP.
 
