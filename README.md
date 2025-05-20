@@ -29,7 +29,6 @@ A aplicação em prod está seguindo a tag/versão 2.0, então as implementaçõ
     - [Fluxo de Autenticação](#fluxo-de-autenticação)
     - [Medidas de Segurança Adicionais](#medidas-de-segurança-adicionais)
   - [Styleguide](#styleguide)
-  - [Demo](#demo)
 - [Rodando o projeto](#rodando-o-projeto)
   - [Ambiente de desenvolvimento local](#ambiente-de-desenvolvimento-local)
   - [Realizando login](#realizando-login)
@@ -422,10 +421,6 @@ Para o desenvolvimento do projeto nós seguimos o style guide proposto, porém c
 
 ![Style guide preview](.github/styleguide.png)
 ![Color pallete preview](.github/pallete.png)
-
-### Demo
-
-Video de demonstração do projeto no [Youtube]().
 
 ## Rodando o projeto
 
