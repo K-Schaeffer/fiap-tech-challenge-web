@@ -1,6 +1,6 @@
 # FIAP Tech Challenge - Fase 4
 
-Projeto desenvolvido em grupo para o segundo tech challenge da FIAP.
+Projeto desenvolvido para as fases do tech challenge web da FIAP.
 
 ## Resumo
 
